@@ -26,7 +26,7 @@ display_step = 1
 n_sample = X_train.shape[0]
 
 n_input = X_train.shape[0]
-n_hidden1 = 25
+n_hidden_1 = 25
 n_class = y_train.shape[1]
 
 x = tf.placeholder('float', [None, n_input])
@@ -41,5 +41,57 @@ def multilayer_perceptron(x, weight, bias):
     return out_layer
 
 weight = {
-    
+    'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
+    'out': tf.Variable(tf.random_normal([n_hidden_1, n_class]))
 }
+bias = {
+    'h1': tf.Variable(tf.random_normal([n_hidden_1])),
+    'out': tf.Variable(tf.random_normal([n_class]))
+}
+
+# 建立模型
+pred = multilayer_perceptron(x, weight, bias)
+
+# 定义损失函数
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
+
+# 优化
+optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
+
+# 初始化所有变量
+init = tf.initialize_all_variables()
+
+correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
+
+# 训练模型
+with tf.Session() as sess:
+    sess.run(init)
+
+    for epoch in range(training_epochs):
+        avg_cost = 0
+        total_batch = int(n_sample / batch_size)
+
+        for i in range(total_batch):
+            _, c = sess.run([optimizer, cost], feed_dict={x: X_train[i*batch_size: (i+1)*batch_size, :],
+                                                          y: y_train[i*batch_size: (i+1)*batch_size, :]})
+            avg_cost += c / total_batch
+
+        plt.plot(epoch+1, avg_cost, 'co')
+
+        if epoch % display_step == 0:
+            print('Epoch:', '%04d' % (epoch+1), 'cost=', '{:.9f}'.format(avg_cost))
+
+    print('Optimization Finished!')
+
+    # Test
+    acc = accuracy.eval({x: X_test, y: y_test})
+    print('Accuracy:', acc)
+
+    plt.xlabel('Epoch')
+    plt.ylabel('Cost')
+    plt.title('lr=%f, te=%d, bs=%d, acc=%f' % (learning_rate, training_epochs, batch_size, acc))
+    plt.tight_layout()
+    plt.savefig('XXXX.png', dpi=200)
+
+    plt.show()
